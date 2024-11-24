@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Level Accounts</title>
+    <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/22.1.5/css/dx.light.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #D1E7FF; /* Blue color for header */
+            color: white; /* White text for header */
+        }
+
+        .light-blue {
+            background-color: #D1E7FF; /* Light blue color */
+        }
+
+        .blue {
+            background-color: #007BFF; /* Dark blue color */
+            color: white; /* White text for blue rows */
+        }
+
+        #detailsModal {
+            display: none;
+            padding: 10px;
+            border: 1px solid #000;
+            background: #fff;
+            position: fixed;
+            z-index: 1000;
+            width: 300px;
+            right: 10px;
+            top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Top Level Accounts</h1>
+    <table id="accountsTable">
+        <thead>
+            <tr>
+                <th>Top Level Account</th>
+                <th>Total Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <div id="detailsModal">
+        <h2>Details</h2>
+        <div id="detailsContent"></div>
+        <button id="closeModal">OK</button>
+    </div>
+
+    <script>
+        $(function () {
+            $.ajax({
+                url: '/api/CalculateBalance/GetCalculateBalance', 
+                method: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    var tableBody = $('#accountsTable tbody');
+                    tableBody.empty(); // Clear existing data
+
+                    // Populate the table with data
+                    $.each(data, function (index, item) {
+                        var row = $('<tr>');
+
+                        // Apply alternating colors
+                        if (index % 2 === 0) {
+                            row.addClass('blue'); // Dark blue for odd rows
+                        } else {
+                            row.addClass('light-blue'); // Light blue for even rows
+                        }
+
+                        row.append($('<td>').text(item.topLevelAccount.trim())); // Trim to remove extra spaces
+                        row.append($('<td>').text(item.totalBalance));
+                        tableBody.append(row);
+
+                        // Add double-click event listener on the row
+                        row.dblclick(function () {
+                            // Call the details API
+                            $.ajax({
+                                url: '/api/CalculateBalance/AccountDetails?accountId=' + item.topLevelAccount.trim(), // Call details API
+                                method: 'GET',
+                                dataType: 'json',
+                                success: function (details) {
+                                    // Populate the modal with details
+                                    var content = '<h3></h3><ul>';
+                                    $.each(details, function (i, detail) {
+                                        content += '<li>Account ' + detail.track.join('-')+'=' + detail.balance + '</li>';
+                                    });
+                                    content += '</ul>';
+                                    $('#detailsContent').html(content);
+                                    $('#detailsModal').show(); // Show the modal
+                                },
+                                error: function (xhr, status, error) {
+                                    console.error("Error fetching details: ", error);
+                                }
+                            });
+                        });
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching data: ", error);
+                }
+            });
+
+            // Close modal functionality
+            $('#closeModal').click(function () {
+                $('#detailsModal').hide();
+            });
+        });
+    </script>
+</body>
+</html>
